@@ -2,7 +2,7 @@
 
 if [[ ! -e ./user-setup.sh ]]; then
     echo "Pulling user setup script from gitlab."
-    curl https://gitlab.com/Cyb3r-Jak3/argos/-/raw/master/user-setup.sh -o user-setup.sh
+    curl https://gitlab.com/Cyb3r-Jak3/argos/-/raw/master/service-setup.sh -o user-setup.sh
 fi
 
 if [[ ! -e ./cowrie.cfg ]]; then
