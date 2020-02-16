@@ -8,8 +8,9 @@ cd cowrie || exit
 
 virtualenv --python=python3 cowrie-env 
 
+# shellcheck disable=SC1091
 source cowrie-env/bin/activate
 
 pip install --upgrade pip
 
-pip install --upgrade -r requirements.txt mysqlclient
+pip install --upgrade -r requirements.txt --quiet
