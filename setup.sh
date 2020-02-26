@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root" 
-   echo "Press any key to continue using sudo."
-   read -n 1 -sr
-   clear
-   exec sudo "$0" "$@"
+    touch output.txt
+    clear
+    echo "This script must be run as root" 
+    echo "Press any key to continue using sudo."
+    read -n 1 -sr
+    exec sudo "$0" "$@"
 fi
 
 function password_gen() {
@@ -14,33 +15,49 @@ function password_gen() {
 	echo "$pass"
 }
 
+function package_update() {
+    # shellcheck disable=SC1090
+    . /etc/*release
+    if [[ "$ID" = "debian" ]] || [[ "$ID" = "ubuntu" ]]; then
+        echo "Installing $ID distro packages"
+        apt-get update && apt-get -qq upgrade > /dev/null
+        apt-get -qq install authbind build-essential curl default-libmysqlclient-dev git libffi-dev libpython3-dev libssl-dev openssl python3 python3-pip python-virtualenv sqlite3 virtualenv > /dev/null
+    elif [[ "$ID" = "centos" ]]; then
+        echo "Install $ID distro packages"
+        yum update -y > /dev/null
+        yum install -y authbind build-essential curl default-libmysqlclient-dev git libffi-dev libpython3-dev libssl-dev openssl python3 python3-pip python-virtualenv sqlite3 virtualenv > /dev/null
+    fi
+}
+
 function file_check() {
-    for script in "cowrie.cfg" "data_report.sh" "service-setup.sh" "query.sh"; do
+    for script in "cowrie.cfg" "data_report.sh" "service-setup.sh" "query.py" "report.py" "report.dist.ini"; do
         if [[ ! -e ./$script ]]; then
             echo "Pulling $script from GitLab"
-            curl https://gitlab.com/Cyb3r-Jak3/argos/-/raw/master/$script -o $script
+            curl -s -S https://gitlab.com/Cyb3r-Jak3/Argos/-/raw/master/$script -o $script
         fi
     done
-    chmod +x service_setup.sh
 }
 
 function service_setup() {
-    apt-get install authbind build-essential curl default-libmysqlclient-dev git libffi-dev libpython3-dev libssl-dev openssl python3 python3-pip python-virtualenv sqlite3 virtualenv -qq
 
     random_password=$(password_gen 15)
-
     useradd --password "$( echo "$random_password" | openssl passwd -crypt -stdin )" --create-home --shell /bin/bash  cowrie || exit
 
+    chmod +x service-setup.sh
     sudo -i -u cowrie /home/setup/service-setup.sh
 
     cp cowrie.cfg /home/cowrie/cowrie/etc/cowrie.cfg
-    cp data_report.sh /home/cowrie/data_report.sh
-    chown cowrie:cowrie /home/cowrie/cowrie/etc/cowrie.cfg /home/cowrie/data_report.sh
+    cp {data_report.sh,report.py,query.py} /home/cowrie/
+    cp report.dist.ini /home/cowrie/report.ini
+    chmod +x /home/cowrie/data_report.sh
+    chown cowrie:cowrie /home/cowrie/{data_report.sh,query.py,report.py,report.ini}
+    chown cowrie:cowrie /home/cowrie/cowrie/etc/cowrie.cfg
+
     echo "cowrie: $random_password" >> output.txt
 }
 
 function harden() {
-    random_port=$(( RANDOM % 3000 + 3000))
+    random_port=$(( RANDOM % 3000 + 50000))
     sed -i -e 's/#Port/Port/' -e "/^Port\s/s/22/$random_port/" /etc/ssh/sshd_config
     sed -i[old] -e 's/^#PermitRootLogin\sprohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
     echo "port: $random_port" >> output.txt
@@ -68,12 +85,15 @@ function uid_check() {
     fi
 }
 
-function crontab(){
-    crontab -l | { cat; echo "0 0 */10 * * /home/cowrie/data_report.sh"; } | crontab -
+function cowrie_authbind() {
+    touch /etc/authbind/byport/22
+    chown cowrie:cowrie /etc/authbind/byport/22
+    chmod 770 /etc/authbind/byport/22
 }
 
+package_update
 file_check
 harden
 uid_check
 service_setup
-crontab
+cowrie_authbind

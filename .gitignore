@@ -125,3 +125,8 @@ dmypy.json
 .pyre/
 
 .vscode
+*.csv
+*.db
+*.sql
+reports*/*
+report.ini
