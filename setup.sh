@@ -29,8 +29,8 @@ function package_update() {
     fi
 }
 
-function file_check() {
-    for script in "cowrie.cfg" "data_report.sh" "service-setup.sh" "query.py" "report.py" "report.dist.ini"; do
+function file_pull() {
+    for script in "cowrie.cfg" "data_report.sh" "query.py" "report.py" "report.dist.ini" "cowrie.service" "cowrie.socket"; do
         if [[ ! -e ./$script ]]; then
             echo "Pulling $script from GitLab"
             curl -s -S https://gitlab.com/Cyb3r-Jak3/Argos/-/raw/master/$script -o $script
@@ -43,8 +43,27 @@ function service_setup() {
     random_password=$(password_gen 15)
     useradd --password "$( echo "$random_password" | openssl passwd -crypt -stdin )" --create-home --shell /bin/bash  cowrie || exit
 
-    chmod +x service-setup.sh
-    sudo -i -u cowrie /home/setup/service-setup.sh
+
+    sudo -i -u cowrie <<EOF
+        echo "0 0 */10 * * /home/cowrie/data_report.sh" > mycron
+        crontab mycron
+        rm -f mycron
+
+        git clone https://github.com/cowrie/cowrie &> /dev/null
+
+        sqlite3 cowrie.db < cowrie/docs/sql/sqlite3.sql
+
+        cd cowrie || exit 3
+
+        virtualenv --python=python3 cowrie-env &> /dev/null
+
+        # shellcheck disable=SC1091
+        source cowrie-env/bin/activate
+
+        pip install --upgrade pip --quiet
+
+        pip install --upgrade -r requirements.txt --quiet
+EOF
 
     cp cowrie.cfg /home/cowrie/cowrie/etc/cowrie.cfg
     cp {data_report.sh,report.py,query.py} /home/cowrie/
@@ -91,9 +110,21 @@ function cowrie_authbind() {
     chmod 770 /etc/authbind/byport/22
 }
 
+function systemd() {
+    cp cowrie.service /etc/systemd/system/
+    cp cowrie.socket /etc/systemd/system/
+
+    cp /home/cowrie/cowrie/docs/systemd/etc/rsyslog.d/cowrie.conf /etc/rsyslog.d/
+    cp /home/cowrie/cowrie/docs/systemd/etc/logrotate.d/cowrie /etc/logrotate.d/
+
+    systemctl daemon-reload
+    systemctl enable cowrie.service
+}
+
 package_update
-file_check
+file_pull
 harden
 uid_check
 service_setup
 cowrie_authbind
+# systemd

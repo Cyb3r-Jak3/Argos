@@ -43,6 +43,6 @@ for report in os.listdir(f"reports-{timestamp}"):
 
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL(smtpserver, port=465, context=context) as server:
-    server.login("cowrie.reporter@gmail.com", "C$Lp7c6^SYppKE!be2!4AfY")
+    server.login(semail, password)
     server.sendmail(semail, remail, message.as_string())
     server.close()
