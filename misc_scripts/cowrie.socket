@@ -1,0 +1,9 @@
+[Unit]
+Description=Cowrie Socket
+PartOf=cowrie.service
+
+[Socket]
+ListenStream= 22
+
+[Install]
+WantedBy=sockets.target

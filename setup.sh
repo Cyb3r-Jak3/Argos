@@ -30,15 +30,19 @@ function package_update() {
 }
 
 function file_pull() {
-    for script in "cowrie.cfg" "data_report.sh" "query.py" "report.py" "report.dist.ini" "cowrie.service" "cowrie.socket"; do
+    for script in "cowrie.cfg" "data_report.sh" "query.py" "report.py" "report.dist.ini" "cowrie.service" "cowrie.socket" "userdb.txt"; do
         if [[ ! -e ./$script ]]; then
             echo "Pulling $script from GitLab"
-            curl -s -S https://gitlab.com/Cyb3r-Jak3/Argos/-/raw/master/$script -o $script
+            curl -s -S https://gitlab.com/Cyb3r-Jak3/Argos/-/raw/master/misc_scripts/$script -o $script
+        else
+            echo "Using local $script."
         fi
+        echo "Scripts loaded"
     done
 }
 
 function service_setup() {
+    echo "Starting service setup"
 
     random_password=$(password_gen 15)
     useradd --password "$( echo "$random_password" | openssl passwd -crypt -stdin )" --create-home --shell /bin/bash  cowrie || exit
@@ -65,12 +69,13 @@ function service_setup() {
         pip install --upgrade -r requirements.txt --quiet
 EOF
 
-    cp cowrie.cfg /home/cowrie/cowrie/etc/cowrie.cfg
+    cp {cowrie.cfg,userdb.txt} /home/cowrie/cowrie/etc/
     cp {data_report.sh,report.py,query.py} /home/cowrie/
     cp report.dist.ini /home/cowrie/report.ini
     chmod +x /home/cowrie/data_report.sh
     chown cowrie:cowrie /home/cowrie/{data_report.sh,query.py,report.py,report.ini}
-    chown cowrie:cowrie /home/cowrie/cowrie/etc/cowrie.cfg
+    chown cowrie:cowrie /home/cowrie/cowrie/etc/{cowrie.cfg,userdb.txt}
+    rm {cowrie.cfg,userdb.txt,data_report.sh,report.py,query.py,report.dist.ini}
 
     echo "cowrie: $random_password" >> output.txt
 }
@@ -121,10 +126,10 @@ function systemd() {
     systemctl enable cowrie.service
 }
 
+uid_check
 package_update
 file_pull
 harden
-uid_check
 service_setup
 cowrie_authbind
-# systemd
+systemd

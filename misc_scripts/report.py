@@ -41,6 +41,18 @@ for report in os.listdir(f"reports-{timestamp}"):
     except Exception as e:
         print(f"Error with file: {report}\n{e}")
 
+with "cowrie.db" as f:
+    try:
+        part = MIMEBase('application', 'ocetet-stream')
+        part.set_payload(open(f, "rb").read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment',
+                        filename=f)
+        message.attach(part)
+    except Exception as e:
+        print(f"Error with file: {f}\n{e}")
+
+
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL(smtpserver, port=465, context=context) as server:
     server.login(semail, password)
