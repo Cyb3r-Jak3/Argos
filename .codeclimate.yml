@@ -1,0 +1,15 @@
+version: 2
+plugins:
+  git-legal:
+    enabled: true
+  sonar-python:
+    enabled: true
+    checks:
+      python:S1542:
+        enabled: false
+  pep8:
+    enabled: true
+  bandit:
+    enabled: true
+  markdownlint:
+    enabled: true

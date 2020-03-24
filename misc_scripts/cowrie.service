@@ -11,8 +11,9 @@ RestartSec=5
 
 User=cowrie
 Group=cowrie
-
-ExecStart= /home/cowrie/cowrie/cowrie-env/bin/python /home/cowrie/cowrie/cowrie-env/bin/twistd --umask 0022 --nodaemon --pidfile= -l cowrie
+Environment=PYTHONPATH=/home/cowrie/cowrie/src
+WorkingDirectory=/home/cowrie/cowrie
+ExecStart= authbind --deep /home/cowrie/cowrie/cowrie-env/bin/python /home/cowrie/cowrie/cowrie-env/bin/twistd --umask 0022 --nodaemon --pidfile= -l - cowrie
 
 StandardOutput=syslog
 StandardError=syslog

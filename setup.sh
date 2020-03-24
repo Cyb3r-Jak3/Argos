@@ -1,12 +1,32 @@
 #!/usr/bin/env bash
 
-if [[ $EUID -ne 0 ]]; then
-    touch output.txt
-    clear
-    echo "This script must be run as root" 
-    echo "Press any key to continue using sudo."
-    read -n 1 -sr
-    exec sudo "$0" "$@"
+# Gets the arguments
+while test $# -gt 0; do
+	case "$1" in
+		"--setup" | "-s")
+		echo "Setting up";
+		setup="true";
+		shift;;
+        "--help" | "-h")
+		echo "Only argument supportted is --setup or -s";
+		exit 0;
+		shift;;
+		*)
+    	echo "Don't know $1";
+    	exit 1
+    	;;
+  esac
+done
+
+if [[ $setup != "true" ]]; then
+    if [[ $EUID -ne 0 ]]; then
+        touch output.txt
+        clear
+        echo "This script must be run as root" 
+        echo "Press any key to continue using sudo."
+        read -n 1 -sr
+        exec sudo "$0" "$@"
+    fi
 fi
 
 function password_gen() {
@@ -37,8 +57,8 @@ function file_pull() {
         else
             echo "Using local $script."
         fi
-        echo "Scripts loaded"
     done
+    echo "Scripts loaded"
 }
 
 function service_setup() {
@@ -121,10 +141,17 @@ function systemd() {
 
     cp /home/cowrie/cowrie/docs/systemd/etc/rsyslog.d/cowrie.conf /etc/rsyslog.d/
     cp /home/cowrie/cowrie/docs/systemd/etc/logrotate.d/cowrie /etc/logrotate.d/
+    rm {cowrie.socket,cowrie.service}
 
     systemctl daemon-reload
     systemctl enable cowrie.service
 }
+
+if [[ $setup == "true" ]]; then
+    file_pull
+    echo "Files have been pulled."
+    exit 0
+fi
 
 uid_check
 package_update
@@ -133,3 +160,4 @@ harden
 service_setup
 cowrie_authbind
 systemd
+echo "Setup Compelted. Check ./output.txt for info"

@@ -19,6 +19,8 @@ smtpserver = config["smtp_server"]
 semail = config["sender_email"]
 remail = config["receiver_email"]
 password = config["password"]
+if semail == "dummyemail@example.com":
+    sys.exit(1)
 
 
 message = MIMEMultipart()
@@ -41,16 +43,29 @@ for report in os.listdir(f"reports-{timestamp}"):
     except Exception as e:
         print(f"Error with file: {report}\n{e}")
 
-with "cowrie.db" as f:
+
+if config.getboolean('include_db'):
     try:
         part = MIMEBase('application', 'ocetet-stream')
-        part.set_payload(open(f, "rb").read())
+        part.set_payload(open("cowrie.db", "rb").read())
         encoders.encode_base64(part)
         part.add_header('Content-Disposition', 'attachment',
-                        filename=f)
+                        filename="cowrie.db")
         message.attach(part)
     except Exception as e:
-        print(f"Error with file: {f}\n{e}")
+        print(f"Error with cowrie.db\n{e}")
+
+if config.getboolean('raw_log'):
+    try:
+        part = MIMEBase('application', 'ocetet-stream')
+        part.set_payload(open("cowrie/var/log/cowrie/cowrie.json",
+                              "rb").read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment',
+                        filename="cowrie.json")
+        message.attach(part)
+    except Exception as e:
+        print(f"Error with cowrie.json\n{e}")
 
 
 context = ssl.create_default_context()
