@@ -13,7 +13,7 @@ os.mkdir(directory)
 
 
 def fetch(table: str):
-    "Returns a table of results"
+    """Returns a table of results"""
     # The select is bad pratice
     # Unfortunately, tables can't be the target of parameter substitution
     format_str = f"SELECT * FROM {table};"  # nosec
@@ -23,6 +23,7 @@ def fetch(table: str):
 
 
 def table_to_csv(table: str, items: list):
+    """Takes a table name and the columns in the table and creates a csv"""
     with open(f"{directory}/{table}.csv", "w") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(items)
